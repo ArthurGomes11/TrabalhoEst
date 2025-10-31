@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Histograma Pokémon Interativo</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            display: flex;
+            flex-direction: column; 
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(to bottom, #FFC107, #FF9800);
+            color: #333;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        #chart-container {
+            width: 90%;
+            max-width: 900px;
+            padding: 25px;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+            margin-bottom: 30px; 
+            border: 5px solid #E63946; 
+        }
+        h1 {
+            text-align: center;
+            margin-top: 0;
+            color: #E63946;
+            text-shadow: 2px 2px 0px #fff;
+            font-size: 2em;
+        }
+
+        #controls {
+            text-align: center;
+            margin-top: -10px; /* Puxa para mais perto do título */
+            margin-bottom: 20px;
+        }
+        
+        #list-all-btn {
+            background-color: #E63946; /* Vermelho Pokémon */
+            color: white;
+            border: 3px solid #b02a33; /* Vermelho mais escuro */
+            border-radius: 8px;
+            padding: 12px 20px;
+            font-size: 1em;
+            font-weight: bold;
+            font-family: system-ui, sans-serif;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 0 #b02a33; /* Efeito 3D */
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+
+        #list-all-btn:hover {
+            background-color: #f24c5a;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 0 #b02a33;
+        }
+
+        #list-all-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #b02a33;
+        }
+
+        #loading {
+            text-align: center;
+            font-size: 1.2em;
+            color: #E63946;
+            margin-top: 20px;
+        }
+        
+        #card-list-title {
+            color: #333;
+            text-align: center;
+            width: 100%;
+            font-size: 1.5em;
+            text-shadow: 1px 1px 0px rgba(255, 255, 255, 0.7);
+            margin-bottom: 20px;
+        }
+
+
+        /* Container dos Cards */
+        #pokemon-cards-container {
+            display: flex;
+            flex-wrap: wrap; 
+            justify-content: center;
+            gap: 20px; 
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        /* Estilo do Card Pokedex */
+        .pokedex-card {
+            background: linear-gradient(135deg, #f0f0f0, #e0e0e0);
+            border: 3px solid #E63946;
+            border-radius: 15px;
+            padding: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            text-align: center;
+            width: 200px;
+            min-height: 280px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            transition: transform 0.2s ease-in-out;
+            position: relative;
+            overflow: hidden; 
+        }
+
+        .pokedex-card:hover {
+            transform: translateY(-8px) scale(1.02);
+        }
+
+        .pokedex-card::before { /* Fundo de hexágonos */
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><g fill="%23e0e0e0"><path d="M50 0L100 28.867V71.133L50 100L0 71.133V28.867Z" opacity=".3"/></g></svg>');
+            background-size: 25px;
+            opacity: 0.4;
+            z-index: 0;
+        }
+
+        .pokedex-card > * { 
+            position: relative;
+            z-index: 1;
+        }
+
+        .pokedex-card h2 {
+            margin: 10px 0 5px 0;
+            color: #4A4A4A;
+            font-size: 1.3em;
+            text-transform: capitalize;
+        }
+
+        .pokedex-card .pokemon-id {
+            font-size: 0.9em;
+            color: #666;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .pokedex-card img {
+            width: 140px; 
+            height: 140px; 
+            object-fit: contain;
+            margin-bottom: 5px;
+        }
+
+        .pokedex-card p {
+            margin: 5px 0;
+            font-size: 0.85em;
+            color: #555;
+        }
+        .pokedex-card .stat-value {
+            font-weight: bold;
+            color: #007bff; 
+        }
+
+        /* Tipos de Pokémon */
+        .type-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 10px;
+            margin: 2px;
+            font-size: 0.7em;
+            font-weight: bold;
+            color: white;
+            text-transform: capitalize;
+            box-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+        }
+        .type-normal { background-color: #A8A77A; }
+        .type-fire { background-color: #EE8130; }
+        .type-water { background-color: #6390F0; }
+        .type-grass { background-color: #7AC74C; }
+        .type-electric { background-color: #F7D02C; }
+        .type-ice { background-color: #96D9D6; }
+        .type-fighting { background-color: #C22E28; }
+        .type-poison { background-color: #A33EA1; }
+        .type-ground { background-color: #E2BF65; }
+        .type-flying { background-color: #A98FF3; }
+        .type-psychic { background-color: #F95587; }
+        .type-bug { background-color: #A6B91A; }
+        .type-rock { background-color: #B6A136; }
+        .type-ghost { background-color: #735797; }
+        .type-dragon { background-color: #6F35FC; }
+        .type-steel { background-color: #B7B7CE; }
+        .type-fairy { background-color: #D685AD; }
+
+        @media (max-width: 768px) {
+            #chart-container {
+                width: 95%;
+                padding: 15px;
+            }
+            h1 {
+                font-size: 1.5em;
+            }
+            .pokedex-card {
+                width: 160px;
+                min-height: 240px;
+                padding: 10px;
+            }
+            .pokedex-card img {
+                width: 120px; 
+                height: 120px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="chart-container">
+        <h1>Distribuição de Velocidade (Kanto)</h1>
+        
+        <div id="controls">
+            <button id="list-all-btn">Listar Todos os 151 Pokémon</button>
+        </div>
+        
+        <div id="loading">
+            <p>Buscando 151 Pokémon... por favor, aguarde!</p>
+        </div>
+
+        <canvas id="statHistogram"></canvas>
+    </div>
+
+    <h2 id="card-list-title">Clique em uma barra do gráfico para ver os Pokémon!</h2>
+    
+    <div id="pokemon-cards-container">
+        </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        let ALL_POKEMON_DATA = [];
+        let pokemonChart; 
+
+        window.addEventListener('DOMContentLoaded', () => {
+            fetchAndDrawChart();
+            
+            document.getElementById('list-all-btn').addEventListener('click', () => {
+                if (ALL_POKEMON_DATA.length > 0) {
+                    const allSpeeds = ALL_POKEMON_DATA.map(pokemon => {
+                        const speedStat = pokemon.stats.find(statInfo => statInfo.stat.name === 'speed');
+                        return speedStat.base_stat;
+                    });
+                    const maxSpeed = Math.max(...allSpeeds);
+                    displayPokemonCards(0, maxSpeed, true);
+                } else {
+                    alert('Os dados dos Pokémon ainda estão carregando!');
+                }
+            });
+        });
+
+        async function fetchAndDrawChart() {
+            const loadingEl = document.getElementById('loading');
+            loadingEl.style.display = 'block';
+
+            try {
+                ALL_POKEMON_DATA = await fetchPokemonData(1, 151);
+
+                const speedStats = ALL_POKEMON_DATA.map(pokemon => {
+                    const speedStat = pokemon.stats.find(statInfo => statInfo.stat.name === 'speed');
+                    return speedStat.base_stat;
+                });
+
+                const binSize = 20;
+                const { labels, dataCounts, binRanges } = createHistogramBins(speedStats, binSize);
+                
+                loadingEl.style.display = 'none';
+                renderChart(labels, dataCounts, binRanges); 
+
+            } catch (error) {
+                console.error('Falha épica ao buscar Pokémon:', error);
+                loadingEl.innerText = 'Erro ao carregar dados. Tente recarregar.';
+            }
+        }
+
+        async function fetchPokemonData(startId, endId) {
+            const promises = [];
+            for (let id = startId; id <= endId; id++) {
+                const url = `https://pokeapi.co/api/v2/pokemon/${id}`;
+                promises.push(
+                    fetch(url).then(response => {
+                        if (!response.ok) throw new Error(`Falha ao buscar Pokémon #${id}`);
+                        return response.json();
+                    })
+                );
+            }
+            return Promise.all(promises);
+        }
+
+        function createHistogramBins(data, binSize) {
+            const minStat = 0;
+            const maxStat = Math.max(...data);
+            const binCount = Math.ceil(maxStat / binSize);
+            
+            const labels = [];
+            const dataCounts = new Array(binCount).fill(0);
+            const binRanges = []; 
+
+            for (let i = 0; i < binCount; i++) {
+                const start = i * binSize;
+                const end = (i + 1) * binSize - 1; 
+                labels.push(`${start} - ${end}`);
+                binRanges.push({ min: start, max: end });
+            }
+
+            for (const statValue of data) {
+                const binIndex = Math.floor(statValue / binSize);
+                if (binIndex >= 0 && binIndex < binCount) {
+                    dataCounts[binIndex]++;
+                }
+            }
+
+            return { labels, dataCounts, binRanges };
+        }
+
+        function renderChart(labels, dataCounts, binRanges) {
+            const ctx = document.getElementById('statHistogram').getContext('2d');
+            
+            if (pokemonChart) {
+                pokemonChart.destroy();
+            }
+
+            pokemonChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Nº de Pokémon',
+                        data: dataCounts,
+                        backgroundColor: 'rgba(255, 203, 5, 0.7)',
+                        borderColor: 'rgba(255, 203, 5, 1)',
+                        borderWidth: 1,
+                        barPercentage: 1.0,
+                        categoryPercentage: 1.0
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Quantidade de Pokémon', color: '#555' },
+                            ticks: { precision: 0 }
+                        },
+                        x: {
+                            title: { display: true, text: 'Faixa de Velocidade (Base Stat)', color: '#555' }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                title: (tooltipItems) => {
+                                    return `Velocidade: ${tooltipItems[0].label}`;
+                                }
+                            }
+                        }
+                    },
+                    onClick: (event, elements) => {
+                        if (elements.length > 0) {
+                            const clickedBarIndex = elements[0].index;
+                            const clickedBin = binRanges[clickedBarIndex];
+                            if (clickedBin) {
+                                displayPokemonCards(clickedBin.min, clickedBin.max, false);
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function displayPokemonCards(minSpeed, maxSpeed, isAll = false) {
+            const cardsContainer = document.getElementById('pokemon-cards-container');
+            const titleEl = document.getElementById('card-list-title'); // Pega o h2
+            cardsContainer.innerHTML = ''; // Limpa cards anteriores
+            
+            // Atualiza o título H2
+            if (isAll) {
+                titleEl.innerText = `Mostrando Todos os 151 Pokémon`;
+            } else {
+                titleEl.innerText = `Pokémon com Velocidade: ${minSpeed} - ${maxSpeed}`;
+            }
+
+            const filteredPokemon = ALL_POKEMON_DATA.filter(pokemon => {
+                const speedStat = pokemon.stats.find(statInfo => statInfo.stat.name === 'speed');
+                return speedStat.base_stat >= minSpeed && speedStat.base_stat <= maxSpeed;
+            });
+
+            if (filteredPokemon.length === 0) {
+                cardsContainer.innerHTML = `<p style="text-align: center; color: #E63946; font-size: 1.2em;">Nenhum Pokémon encontrado nesta faixa de velocidade.</p>`;
+                return;
+            }
+
+            // Ordena os Pokémon por ID (número da Pokedex) antes de exibir
+            filteredPokemon.sort((a, b) => a.id - b.id);
+
+            filteredPokemon.forEach(pokemon => {
+                const speedStat = pokemon.stats.find(statInfo => statInfo.stat.name === 'speed');
+                const imageUrl = pokemon.sprites.other['official-artwork'].front_default || pokemon.sprites.front_default;
+
+                const cardHtml = `
+                    <div class="pokedex-card">
+                        <span class="pokemon-id">#${String(pokemon.id).padStart(3, '0')}</span>
+                        <h2>${pokemon.name}</h2>
+                        <img src="${imageUrl}" alt="${pokemon.name}">
+                        <p>Velocidade: <span class="stat-value">${speedStat.base_stat}</span></p>
+                        <div>
+                            ${pokemon.types.map(typeInfo => `<span class="type-badge type-${typeInfo.type.name}">${typeInfo.type.name}</span>`).join('')}
+                        </div>
+                    </div>
+                `;
+                cardsContainer.innerHTML += cardHtml;
+            });
+        }
+    </script>
+</body>
+</html>
