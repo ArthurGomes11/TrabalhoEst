@@ -263,7 +263,7 @@
             loadingEl.style.display = 'block';
 
             try {
-                ALL_POKEMON_DATA = await fetchPokemonData(1, 151);
+                ALL_POKEMON_DATA = await fetchPokemonData(1, 700);
 
                 const speedStats = ALL_POKEMON_DATA.map(pokemon => {
                     const speedStat = pokemon.stats.find(statInfo => statInfo.stat.name === 'speed');
