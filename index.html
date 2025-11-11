@@ -3,300 +3,327 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculadora Estatística com Gráfico</title>
-
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
+    <title>Análise de Peso ao Nascer</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.js"></script>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f0f2f5;
-            color: #333;
-            line-height: 1.6;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
+            background-color: #f4f7f6;
             margin: 0;
             padding: 20px;
-            box-sizing: border-box;
         }
-
-        .container {
-            background-color: #ffffff;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-            padding: 25px 30px;
+        main {
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+            padding: 2.5rem;
             width: 100%;
-            max-width: 700px;
+            max-width: 800px;
         }
-
-        h1, h2 {
-            color: #1a237e;
-            border-bottom: 2px solid #e0e0e0;
-            padding-bottom: 8px;
+        h1 {
+            text-align: center;
+            color: #333;
             margin-top: 0;
         }
-        
-        h2 {
-            margin-top: 30px;
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
         }
-
-        #dataInput {
-            width: 100%;
-            min-height: 120px;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            padding: 10px;
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #555;
+        }
+        select, input, button {
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
             font-size: 1rem;
-            box-sizing: border-box;
-            resize: vertical;
         }
-
-        #calculateBtn {
-            background-color: #28a745;
+        button {
+            background-color: #007bff;
             color: white;
-            border: none;
-            border-radius: 6px;
-            padding: 12px 20px;
-            font-size: 1.1rem;
-            font-weight: bold;
+            font-weight: 700;
             cursor: pointer;
-            margin-top: 15px;
-            width: 100%;
-            transition: background-color 0.2s ease;
+            border: none;
+            transition: background-color 0.3s ease;
+            grid-column: 1 / -1; /* Faz o botão ocupar a largura total */
         }
-
-        #calculateBtn:hover {
-            background-color: #218838;
+        button:hover {
+            background-color: #0056b3;
         }
-
         #results {
-            background-color: #f9f9f9;
-            border: 1px solid #e0e0e0;
-            border-radius: 6px;
-            padding: 20px;
-            margin-top: 20px;
+            text-align: center;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #007bff;
+            margin-bottom: 2rem;
+            padding: 1rem;
+            background: #e6f2ff;
+            border-radius: 8px;
         }
-
-        #results ul { list-style-type: none; padding-left: 0; }
-        #results li { font-size: 1.1rem; margin-bottom: 10px; }
-        #results li strong { color: #0d47a1; min-width: 150px; display: inline-block; }
-
-        #histogramTable {
+        .chart-container {
+            position: relative;
+            height: 400px;
             width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-            font-size: 0.95rem;
         }
-        #histogramTable th, #histogramTable td {
-            border: 1px solid #ddd;
-            padding: 10px 12px;
-            text-align: left;
-        }
-        #histogramTable th { background-color: #f4f4f4; color: #333; font-weight: 600; }
-        
-        #error { color: #d9534f; font-weight: bold; margin-top: 10px; }
-        
-        /* O CSS do gráfico antigo foi removido */
-        
-        /* Contêiner para o <canvas> do gráfico */
-        .chart-wrapper {
-            margin-top: 20px;
-            background: #fff;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            padding: 10px;
-        }
-
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h1>Calculadora Estatística com Gráfico</h1>
-        <p>Cole seus dados numéricos separados por vírgula (ou espaço, ou quebra de linha).</p>
+    <main>
+        <h1>Análise de Peso ao Nascer (Distribuição Normal)</h1>
+        <p style="text-align: center; margin-top: -1rem; margin-bottom: 2rem;">Baseado no Estudo de Caso da Tabela 5.6 [cite: 49]</p>
 
-        <textarea id="dataInput" placeholder="Ex: 20.1, 19.5, 22.3, 18.0, 20.1, 25.5, 14.2, 16.3">20.1, 19.5, 22.3, 18.0, 20.1, 25.5, 14.2, 16.3, 20.5, 20.8, 23.9, 29.1, 15.0, 17.9, 18.0, 20.9, 21.0, 23.9, 24.0, 26.9, 103, 178, 170, 138, 80, 12, 14, 100, 55, 40, 60, 70, 80, 90, 45, 65, 75, 85</textarea>
-        <button id="calculateBtn">Calcular</button>
-        <div id="error"></div>
-
-        <div id="results" style="display: none;">
-            <h2>Resultados da Análise</h2>
-            <ul id="summaryStats"></ul>
-
-            <h2>Distribuição de Probabilidade (Tabela)</h2>
-            <table id="histogramTable">
-                <thead>
-                    <tr>
-                        <th>Faixa de Valor</th>
-                        <th>Frequência (Contagem)</th>
-                        <th>Probabilidade</th>
-                    </tr>
-                </thead>
-                <tbody id="histogramBody"></tbody>
-            </table>
-            
-            <h2>Histograma (Gráfico Visual)</h2>
-            <div class="chart-wrapper">
-                <canvas id="myChart"></canvas>
+        <div class="controls">
+            <div class="control-group">
+                <label for="gestation">Período de Gestação:</label>
+                <select id="gestation">
+                    </select>
             </div>
-            
+            <div class="control-group">
+                <label for="x1">Peso 1 (x1):</label>
+                <input type="number" id="x1" step="0.01" placeholder="Ex: 5.5">
+            </div>
+            <div class="control-group">
+                <label for="x2">Peso 2 (x2):</label>
+                <input type="number" id="x2" step="0.01" placeholder="Ex: 9.0 (opcional)">
+            </div>
+            <button id="calculateBtn">Calcular Probabilidade e Desenhar Gráfico</button>
         </div>
-    </div>
+
+        <div id="results" style="display: none;"></div>
+
+        <div class="chart-container">
+            <canvas id="normalCurveChart"></canvas>
+        </div>
+    </main>
 
     <script>
-        // Variável global para guardar o gráfico e poder destruí-lo
-        let myChart = null;
+        // 2. Dados da Tabela 5.6 do Estudo de Caso 
+        const gestationData = {
+            "under_28": { name: "Abaixo de 28 semanas", mu: 1.90, sigma: 1.23 },
+            "28_31": { name: "28 a 31 semanas", mu: 4.10, sigma: 1.88 },
+            "32_33": { name: "32 a 33 semanas", mu: 5.08, sigma: 1.56 },
+            "34_36": { name: "34 a 36 semanas", mu: 6.14, sigma: 1.29 },
+            "37_38": { name: "37 a 38 semanas", mu: 7.06, sigma: 1.09 },
+            "39": { name: "39 semanas", mu: 7.48, sigma: 1.02 },
+            "40_41": { name: "40 a 41 semanas", mu: 7.67, sigma: 1.03 },
+            "over_42": { name: "42 semanas e mais", mu: 7.56, sigma: 1.10 }
+        };
 
-        document.addEventListener("DOMContentLoaded", function() {
+        // 3. Elementos do DOM
+        const select = document.getElementById('gestation');
+        const x1Input = document.getElementById('x1');
+        const x2Input = document.getElementById('x2');
+        const calcButton = document.getElementById('calculateBtn');
+        const resultsDiv = document.getElementById('results');
+        const ctx = document.getElementById('normalCurveChart').getContext('2d');
+        let chart;
+
+        // 4. Funções Estatísticas (PDF e CDF)
+        
+        // Função Densidade de Probabilidade (PDF) da Normal
+        // Usada para desenhar a curva
+        function normalPDF(x, mu, sigma) {
+            const factor = 1 / (sigma * Math.sqrt(2 * Math.PI));
+            return factor * Math.exp(-0.5 * Math.pow((x - mu) / sigma, 2));
+        }
+
+        // Função de Distribuição Cumulativa (CDF) da Normal Padrão (z)
+        // Usa a aproximação de 'erf' (Error Function)
+        // Isso calcula P(Z <= z)
+        function standardNormalCDF(z) {
+            // Constantes da aproximação
+            const p = 0.3275911;
+            const a1 = 0.254829592;
+            const a2 = -0.284496736;
+            const a3 = 1.421413741;
+            const a4 = -1.453152027;
+            const a5 = 1.061405429;
+
+            const sign = (z < 0) ? -1 : 1;
+            const x = Math.abs(z);
+            const t = 1.0 / (1.0 + p * x);
+            const y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
             
-            const calculateBtn = document.getElementById("calculateBtn");
-            const dataInput = document.getElementById("dataInput");
-            const resultsDiv = document.getElementById("results");
-            const summaryStatsList = document.getElementById("summaryStats");
-            const histogramBody = document.getElementById("histogramBody");
-            const errorDiv = document.getElementById("error");
+            return 0.5 * (1.0 + sign * y);
+        }
+
+        // Função para calcular P(X <= x) para qualquer normal
+        function normalCDF(x, mu, sigma) {
+            if (sigma === 0) return (x < mu) ? 0 : 1;
+            const z = (x - mu) / sigma;
+            return standardNormalCDF(z);
+        }
+
+        // 5. Função Principal de Cálculo e Desenho
+        
+        function calculateAndDraw() {
+            // Obter dados selecionados
+            const selectedKey = select.value;
+            const { mu, sigma } = gestationData[selectedKey];
             
-            // Referência para a "tela" do gráfico
-            const ctx = document.getElementById('myChart').getContext('2d');
+            const x1 = x1Input.value ? parseFloat(x1Input.value) : null;
+            const x2 = x2Input.value ? parseFloat(x2Input.value) : null;
 
-            calculateBtn.addEventListener("click", function() {
-                
-                errorDiv.textContent = "";
-                resultsDiv.style.display = "none";
-                summaryStatsList.innerHTML = "";
-                histogramBody.innerHTML = "";
-                
-                // Destrói o gráfico anterior (se existir)
-                if (myChart) {
-                    myChart.destroy();
+            let probability = 0;
+            let resultText = "";
+
+            // Lógica de Cálculo
+            if (x1 !== null && x2 !== null) {
+                // Probabilidade entre x1 e x2
+                const p1 = normalCDF(Math.min(x1, x2), mu, sigma);
+                const p2 = normalCDF(Math.max(x1, x2), mu, sigma);
+                probability = p2 - p1;
+                resultText = `P(${Math.min(x1, x2)} < X < ${Math.max(x1, x2)}) = ${(probability * 100).toFixed(2)}%`;
+            } else if (x1 !== null) {
+                // Probabilidade abaixo de x1
+                probability = normalCDF(x1, mu, sigma);
+                resultText = `P(X < ${x1}) = ${(probability * 100).toFixed(2)}%`;
+            } else if (x2 !== null) {
+                // Probabilidade acima de x2 (assumindo x2 como limite inferior)
+                probability = 1 - normalCDF(x2, mu, sigma);
+                resultText = `P(X > ${x2}) = ${(probability * 100).toFixed(2)}%`;
+            } else {
+                resultsDiv.style.display = 'block';
+                resultsDiv.textContent = 'Por favor, insira pelo menos um valor de peso (x1).';
+                return;
+            }
+
+            // Exibir resultado
+            resultsDiv.style.display = 'block';
+            resultsDiv.textContent = resultText;
+
+            // Atualizar Gráfico
+            updateChart(mu, sigma, x1, x2);
+        }
+
+        // 6. Função para Atualizar o Gráfico (Chart.js)
+        
+        function updateChart(mu, sigma, x1, x2) {
+            // Definir o range do gráfico (Média +/- 4 desvios padrão)
+            const minX = mu - 4 * sigma;
+            const maxX = mu + 4 * sigma;
+            const step = (maxX - minX) / 100;
+
+            const labels = [];
+            const pdfData = [];
+            const areaData = [];
+
+            for (let x = minX; x <= maxX; x += step) {
+                labels.push(x.toFixed(2));
+                const pdfVal = normalPDF(x, mu, sigma);
+                pdfData.push(pdfVal);
+
+                // Lógica para sombreamento
+                let inArea = false;
+                if (x1 !== null && x2 !== null) {
+                    // Entre x1 e x2
+                    inArea = (x >= Math.min(x1, x2) && x <= Math.max(x1, x2));
+                } else if (x1 !== null) {
+                    // Abaixo de x1
+                    inArea = (x <= x1);
+                } else if (x2 !== null) {
+                    // Acima de x2
+                    inArea = (x >= x2);
                 }
-
-                // 1. Obter e Limpar os Dados (Igual antes)
-                const rawText = dataInput.value;
-                const numbers = rawText.split(/[\s,;\n]+/)
-                                      .map(Number)
-                                      .filter(n => !isNaN(n));
-
-                if (numbers.length === 0) {
-                    errorDiv.textContent = "Nenhum dado numérico válido encontrado.";
-                    return;
-                }
-
-                // 2. Calcular Estatísticas (Igual antes)
-                const n = numbers.length;
-                const sum = numbers.reduce((acc, val) => acc + val, 0);
-                const mean = sum / n;
-                const min = Math.min(...numbers);
-                const max = Math.max(...numbers);
-
-                const squaredDiffs = numbers.map(val => Math.pow(val - mean, 2));
-                const variance = squaredDiffs.reduce((acc, val) => acc + val, 0) / n;
-                const stdDev = Math.sqrt(variance);
-
-                // 3. Exibir Estatísticas Simples (Igual antes)
-                summaryStatsList.innerHTML = `
-                    <li><strong>Contagem (n):</strong> ${n}</li>
-                    <li><strong>Média (μ):</strong> ${mean.toFixed(2)}</li>
-                    <li><strong>Desvio Padrão (σ):</strong> ${stdDev.toFixed(2)}</li>
-                    <li><strong>Valor Mínimo:</strong> ${min.toFixed(2)}</li>
-                    <li><strong>Valor Máximo:</strong> ${max.toFixed(2)}</li>
-                `;
-
-                // 4. Calcular Histograma (Igual antes)
-                const numBins = 8; // 8 faixas
-                const binSize = (max - min) / numBins;
                 
-                let bins = [];
-                for (let i = 0; i < numBins; i++) {
-                    let binMin = min + (i * binSize);
-                    let binMax = min + ((i + 1) * binSize);
-                    let label = `${binMin.toFixed(1)} - ${binMax.toFixed(1)}`;
-                    if (binSize === 0) {
-                        label = `${binMin.toFixed(1)}`;
-                        bins.push({ label: label, min: binMin, max: binMax, count: 0 });
-                        break; // Só precisa de uma faixa se todos os números são iguais
-                    }
-                    bins.push({ label: label, min: binMin, max: binMax, count: 0 });
-                }
-                
-                for (const num of numbers) {
-                    if (num === max) {
-                        bins[bins.length - 1].count++;
-                        continue;
-                    }
-                    for (let i = 0; i < bins.length; i++) {
-                        if (num >= bins[i].min && num < bins[i].max) {
-                            bins[i].count++;
-                            break;
+                areaData.push(inArea ? pdfVal : 0);
+            }
+
+            // Destruir gráfico antigo se existir
+            if (chart) {
+                chart.destroy();
+            }
+
+            // Criar novo gráfico
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Área de Probabilidade',
+                            data: areaData,
+                            borderColor: 'rgba(0, 123, 255, 0.5)',
+                            backgroundColor: 'rgba(0, 123, 255, 0.3)',
+                            fill: 'origin',
+                            pointRadius: 0,
+                            borderWidth: 2
+                        },
+                        {
+                            label: 'Curva Normal (PDF)',
+                            data: pdfData,
+                            borderColor: 'rgba(0, 123, 255, 1)',
+                            fill: false,
+                            pointRadius: 0,
+                            borderWidth: 3
                         }
-                    }
-                }
-
-                // 5. Exibir Tabela (Igual antes)
-                for (const bin of bins) {
-                    const probability = (bin.count / n) * 100;
-                    const newRow = document.createElement("tr");
-                    newRow.innerHTML = `
-                        <td>${bin.label}</td>
-                        <td>${bin.count}</td>
-                        <td>${probability.toFixed(2)}%</td>
-                    `;
-                    histogramBody.appendChild(newRow);
-                }
-                
-                // ===========================================
-                // 6. CRIAR O GRÁFICO COM CHART.JS
-                // ===========================================
-
-                // Prepara os dados para o gráfico
-                const chartLabels = bins.map(bin => bin.label);
-                const chartData = bins.map(bin => bin.count);
-
-                myChart = new Chart(ctx, {
-                    type: 'bar', // Tipo barra
-                    data: {
-                        labels: chartLabels, // Rótulos do eixo X (ex: "40-59")
-                        datasets: [{
-                            label: 'Frequência',
-                            data: chartData, // Dados do eixo Y (contagem)
-                            backgroundColor: '#f7d354', // Amarelo (do seu exemplo Pokémon)
-                            borderColor: '#e6b93e',
-                            borderWidth: 1
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        plugins: {
-                            legend: {
-                                display: false // Não precisa de legenda para um
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Peso ao Nascer (libras)'
                             }
                         },
-                        // Adiciona os títulos dos eixos, como no seu exemplo
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                title: {
-                                    display: true,
-                                    text: 'Frequência (Contagem)'
-                                }
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Densidade de Probabilidade'
                             },
-                            x: {
-                                title: {
-                                    display: true,
-                                    text: 'Faixa de Valor'
-                                }
-                            }
+                            beginAtZero: true
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            enabled: false
                         }
                     }
-                });
-
-                // Mostra a div de resultados
-                resultsDiv.style.display = "block";
+                }
             });
-        });
-    </script>
+        }
 
+        // 7. Inicialização
+        
+        function init() {
+            // Preencher o dropdown
+            for (const key in gestationData) {
+                const option = document.createElement('option');
+                option.value = key;
+                option.textContent = gestationData[key].name;
+                select.appendChild(option);
+            }
+
+            // Adicionar evento ao botão
+            calcButton.addEventListener('click', calculateAndDraw);
+
+            // Desenhar o primeiro gráfico (default)
+            const defaultKey = Object.keys(gestationData)[0];
+            const { mu, sigma } = gestationData[defaultKey];
+            updateChart(mu, sigma, null, null);
+        }
+
+        init();
+
+    </script>
 </body>
 </html>
