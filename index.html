@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Análise de Peso ao Nascer</title>
+    <title>Visualizador de Peso ao Nascer (kg)</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.js"></script>
     <style>
         body {
@@ -30,8 +30,8 @@
             margin-top: 0;
         }
         .controls {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            display: flex;
+            flex-direction: column;
             gap: 1.5rem;
             margin-bottom: 2rem;
         }
@@ -44,33 +44,11 @@
             margin-bottom: 0.5rem;
             color: #555;
         }
-        select, input, button {
+        select {
             padding: 0.75rem;
             border: 1px solid #ddd;
             border-radius: 8px;
             font-size: 1rem;
-        }
-        button {
-            background-color: #007bff;
-            color: white;
-            font-weight: 700;
-            cursor: pointer;
-            border: none;
-            transition: background-color 0.3s ease;
-            grid-column: 1 / -1; /* Faz o botão ocupar a largura total */
-        }
-        button:hover {
-            background-color: #0056b3;
-        }
-        #results {
-            text-align: center;
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: #007bff;
-            margin-bottom: 2rem;
-            padding: 1rem;
-            background: #e6f2ff;
-            border-radius: 8px;
         }
         .chart-container {
             position: relative;
@@ -82,27 +60,16 @@
 <body>
 
     <main>
-        <h1>Análise de Peso ao Nascer (Distribuição Normal)</h1>
-        <p style="text-align: center; margin-top: -1rem; margin-bottom: 2rem;">Baseado no Estudo de Caso da Tabela 5.6 [cite: 49]</p>
+        <h1>Análise de Peso ao Nascer (kg)</h1>
+        <p style="text-align: center; margin-top: -1rem; margin-bottom: 2rem;">Visualizador da Distribuição Normal (Baseado na Tabela 5.6)</p>
 
         <div class="controls">
             <div class="control-group">
-                <label for="gestation">Período de Gestação:</label>
+                <label for="gestation">Selecione o Período de Gestação:</label>
                 <select id="gestation">
                     </select>
             </div>
-            <div class="control-group">
-                <label for="x1">Peso 1 (x1):</label>
-                <input type="number" id="x1" step="0.01" placeholder="Ex: 5.5">
-            </div>
-            <div class="control-group">
-                <label for="x2">Peso 2 (x2):</label>
-                <input type="number" id="x2" step="0.01" placeholder="Ex: 9.0 (opcional)">
-            </div>
-            <button id="calculateBtn">Calcular Probabilidade e Desenhar Gráfico</button>
         </div>
-
-        <div id="results" style="display: none;"></div>
 
         <div class="chart-container">
             <canvas id="normalCurveChart"></canvas>
@@ -110,8 +77,8 @@
     </main>
 
     <script>
-        // 2. Dados da Tabela 5.6 do Estudo de Caso 
-        const gestationData = {
+        // 2. Dados da Tabela 5.6 (em libras, como no original) 
+        const gestationDataLibras = {
             "under_28": { name: "Abaixo de 28 semanas", mu: 1.90, sigma: 1.23 },
             "28_31": { name: "28 a 31 semanas", mu: 4.10, sigma: 1.88 },
             "32_33": { name: "32 a 33 semanas", mu: 5.08, sigma: 1.56 },
@@ -122,16 +89,15 @@
             "over_42": { name: "42 semanas e mais", mu: 7.56, sigma: 1.10 }
         };
 
+        // Fator de conversão
+        const lbsToKg = 0.45359237;
+
         // 3. Elementos do DOM
         const select = document.getElementById('gestation');
-        const x1Input = document.getElementById('x1');
-        const x2Input = document.getElementById('x2');
-        const calcButton = document.getElementById('calculateBtn');
-        const resultsDiv = document.getElementById('results');
         const ctx = document.getElementById('normalCurveChart').getContext('2d');
         let chart;
 
-        // 4. Funções Estatísticas (PDF e CDF)
+        // 4. Função Estatística (PDF)
         
         // Função Densidade de Probabilidade (PDF) da Normal
         // Usada para desenhar a curva
@@ -140,78 +106,24 @@
             return factor * Math.exp(-0.5 * Math.pow((x - mu) / sigma, 2));
         }
 
-        // Função de Distribuição Cumulativa (CDF) da Normal Padrão (z)
-        // Usa a aproximação de 'erf' (Error Function)
-        // Isso calcula P(Z <= z)
-        function standardNormalCDF(z) {
-            // Constantes da aproximação
-            const p = 0.3275911;
-            const a1 = 0.254829592;
-            const a2 = -0.284496736;
-            const a3 = 1.421413741;
-            const a4 = -1.453152027;
-            const a5 = 1.061405429;
-
-            const sign = (z < 0) ? -1 : 1;
-            const x = Math.abs(z);
-            const t = 1.0 / (1.0 + p * x);
-            const y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
-            
-            return 0.5 * (1.0 + sign * y);
-        }
-
-        // Função para calcular P(X <= x) para qualquer normal
-        function normalCDF(x, mu, sigma) {
-            if (sigma === 0) return (x < mu) ? 0 : 1;
-            const z = (x - mu) / sigma;
-            return standardNormalCDF(z);
-        }
-
-        // 5. Função Principal de Cálculo e Desenho
+        // 5. Função Principal de Desenho
         
-        function calculateAndDraw() {
+        function visualizeChart() {
             // Obter dados selecionados
             const selectedKey = select.value;
-            const { mu, sigma } = gestationData[selectedKey];
-            
-            const x1 = x1Input.value ? parseFloat(x1Input.value) : null;
-            const x2 = x2Input.value ? parseFloat(x2Input.value) : null;
+            const { mu: mu_lbs, sigma: sigma_lbs } = gestationDataLibras[selectedKey]; // 
 
-            let probability = 0;
-            let resultText = "";
-
-            // Lógica de Cálculo
-            if (x1 !== null && x2 !== null) {
-                // Probabilidade entre x1 e x2
-                const p1 = normalCDF(Math.min(x1, x2), mu, sigma);
-                const p2 = normalCDF(Math.max(x1, x2), mu, sigma);
-                probability = p2 - p1;
-                resultText = `P(${Math.min(x1, x2)} < X < ${Math.max(x1, x2)}) = ${(probability * 100).toFixed(2)}%`;
-            } else if (x1 !== null) {
-                // Probabilidade abaixo de x1
-                probability = normalCDF(x1, mu, sigma);
-                resultText = `P(X < ${x1}) = ${(probability * 100).toFixed(2)}%`;
-            } else if (x2 !== null) {
-                // Probabilidade acima de x2 (assumindo x2 como limite inferior)
-                probability = 1 - normalCDF(x2, mu, sigma);
-                resultText = `P(X > ${x2}) = ${(probability * 100).toFixed(2)}%`;
-            } else {
-                resultsDiv.style.display = 'block';
-                resultsDiv.textContent = 'Por favor, insira pelo menos um valor de peso (x1).';
-                return;
-            }
-
-            // Exibir resultado
-            resultsDiv.style.display = 'block';
-            resultsDiv.textContent = resultText;
+            // Converter para KG
+            const mu = mu_lbs * lbsToKg;
+            const sigma = sigma_lbs * lbsToKg;
 
             // Atualizar Gráfico
-            updateChart(mu, sigma, x1, x2);
+            updateChart(mu, sigma);
         }
 
         // 6. Função para Atualizar o Gráfico (Chart.js)
         
-        function updateChart(mu, sigma, x1, x2) {
+        function updateChart(mu, sigma) {
             // Definir o range do gráfico (Média +/- 4 desvios padrão)
             const minX = mu - 4 * sigma;
             const maxX = mu + 4 * sigma;
@@ -219,27 +131,11 @@
 
             const labels = [];
             const pdfData = [];
-            const areaData = [];
 
             for (let x = minX; x <= maxX; x += step) {
                 labels.push(x.toFixed(2));
                 const pdfVal = normalPDF(x, mu, sigma);
                 pdfData.push(pdfVal);
-
-                // Lógica para sombreamento
-                let inArea = false;
-                if (x1 !== null && x2 !== null) {
-                    // Entre x1 e x2
-                    inArea = (x >= Math.min(x1, x2) && x <= Math.max(x1, x2));
-                } else if (x1 !== null) {
-                    // Abaixo de x1
-                    inArea = (x <= x1);
-                } else if (x2 !== null) {
-                    // Acima de x2
-                    inArea = (x >= x2);
-                }
-                
-                areaData.push(inArea ? pdfVal : 0);
             }
 
             // Destruir gráfico antigo se existir
@@ -254,19 +150,11 @@
                     labels: labels,
                     datasets: [
                         {
-                            label: 'Área de Probabilidade',
-                            data: areaData,
-                            borderColor: 'rgba(0, 123, 255, 0.5)',
-                            backgroundColor: 'rgba(0, 123, 255, 0.3)',
-                            fill: 'origin',
-                            pointRadius: 0,
-                            borderWidth: 2
-                        },
-                        {
-                            label: 'Curva Normal (PDF)',
+                            label: `Distribuição (μ=${mu.toFixed(2)} kg, σ=${sigma.toFixed(2)} kg)`,
                             data: pdfData,
                             borderColor: 'rgba(0, 123, 255, 1)',
-                            fill: false,
+                            backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                            fill: 'origin',
                             pointRadius: 0,
                             borderWidth: 3
                         }
@@ -279,7 +167,7 @@
                         x: {
                             title: {
                                 display: true,
-                                text: 'Peso ao Nascer (libras)'
+                                text: 'Peso ao Nascer (kg)'
                             }
                         },
                         y: {
@@ -292,10 +180,11 @@
                     },
                     plugins: {
                         legend: {
-                            display: false
+                            display: true
                         },
                         tooltip: {
-                            enabled: false
+                            mode: 'index',
+                            intersect: false
                         }
                     }
                 }
@@ -306,20 +195,18 @@
         
         function init() {
             // Preencher o dropdown
-            for (const key in gestationData) {
+            for (const key in gestationDataLibras) {
                 const option = document.createElement('option');
                 option.value = key;
-                option.textContent = gestationData[key].name;
+                option.textContent = gestationDataLibras[key].name;
                 select.appendChild(option);
             }
 
-            // Adicionar evento ao botão
-            calcButton.addEventListener('click', calculateAndDraw);
+            // Adicionar evento ao dropdown
+            select.addEventListener('change', visualizeChart);
 
             // Desenhar o primeiro gráfico (default)
-            const defaultKey = Object.keys(gestationData)[0];
-            const { mu, sigma } = gestationData[defaultKey];
-            updateChart(mu, sigma, null, null);
+            visualizeChart();
         }
 
         init();
